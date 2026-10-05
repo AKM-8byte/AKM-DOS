@@ -1,0 +1,4 @@
+pyautogui
+playsound
+PyQt5
+PyQtWebEngine
