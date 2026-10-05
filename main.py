@@ -1,23 +1,30 @@
-"""AKM-DOS 0.6 - modular command shell."""
+"""AKM-DOS 0.7 - existing command shell backed by shared core services."""
 
-import os
-import platform
-import shutil
-import subprocess
+import json
 from pathlib import Path
 
-VERSION = "0.6 Alpha"
+from akm import AKMCore
+from akm.shell.commands import filesystem as file_commands
+
+VERSION = "0.7 Alpha"
 ROOT = Path(__file__).resolve().parent
 USERS_DIR = ROOT / "Users"
 LEGACY_USER_FILE = ROOT / "Kullanıcı" / "kullanıcı_ad.txt"
 
 
 class AKMShell:
-    def __init__(self):
+    def __init__(self, core: AKMCore | None = None) -> None:
         self.running = True
-        self.username = self._load_user()
-        self.home = USERS_DIR / self.username
+        self.core = core if core is not None else AKMCore(ROOT)
+        if self.core.started:
+            assert self.core.username is not None
+            self.username = self.core.username
+        else:
+            self.username = self._load_user()
         self._prepare_home()
+        assert self.core.filesystem is not None
+        self.filesystem = self.core.filesystem
+        self.home = self.filesystem.home
         self.cwd = self.home
 
         self.commands = {
@@ -43,47 +50,47 @@ class AKMShell:
             "notepad": self.cmd_notepad,
             "aygıtlar": self.cmd_devices,
             "systeminfo": self.cmd_systeminfo,
+            "settings": self.cmd_settings,
             "renk": self.cmd_color,
             "çıkış": self.cmd_exit,
             "kapat": self.cmd_exit,
             "exit": self.cmd_exit,
         }
 
-    def _load_user(self):
-        USERS_DIR.mkdir(exist_ok=True)
-
+    def _load_user(self) -> str:
         # Eski AKM-DOS kullanıcı adını mümkünse koru.
-        if LEGACY_USER_FILE.exists():
-            name = LEGACY_USER_FILE.read_text(encoding="utf-8").strip()
-            if name:
-                return self._safe_username(name)
+        name = self.core.settings.legacy_username(self.core.root / 'Kullanıcı' / 'kullanıcı_ad.txt')
+        if name:
+            return self._safe_username(name)
+        name = self.core.settings.get('user.name')
+        if isinstance(name, str) and name.strip():
+            return self._safe_username(name)
+        name = self.core.settings.profile_username(self.core.root / 'Users')
+        if name:
+            return self._safe_username(name)
 
         print("AKM-DOS'a hoş geldin. Sana ne ile hitap etmeliyim?")
         name = input("> ").strip() or "User"
         return self._safe_username(name)
 
     @staticmethod
-    def _safe_username(name):
+    def _safe_username(name: str) -> str:
         safe = "".join(c for c in name if c.isalnum() or c in (" ", "_", "-")).strip()
         return safe or "User"
 
-    def _prepare_home(self):
-        for folder in ("Desktop", "Documents", "Downloads", "Settings"):
-            (self.home / folder).mkdir(parents=True, exist_ok=True)
+    def _prepare_home(self) -> None:
+        if not self.core.started:
+            self.core.start(self.username)
 
-        profile = self.home / "Settings" / "profile.txt"
-        if not profile.exists():
-            profile.write_text(f"username={self.username}\n", encoding="utf-8")
-
-    def prompt(self):
+    def prompt(self) -> str:
         try:
             relative = self.cwd.relative_to(self.home)
             location = "~" if str(relative) == "." else f"~/{relative}"
         except ValueError:
-            location = str(self.cwd)
+            location = self.filesystem.virtual_path(self.cwd) or str(self.cwd)
         return f"{self.username}@AKM-DOS:{location}> "
 
-    def run(self):
+    def run(self) -> None:
         print(f"AKM Komut Sistemi {VERSION}")
         print("'yardım' yazarak komutları görebilirsin.\n")
 
@@ -102,22 +109,21 @@ class AKMShell:
                 else:
                     print(f"Bilinmeyen komut: {command}. Yardım için 'yardım' yaz.")
             except (KeyboardInterrupt, EOFError):
+                self.running = False
                 print("\nAKM-DOS kapatılıyor...")
                 break
             except Exception as exc:
                 self._log_error(exc)
                 print(f"Hata: {exc}")
 
-    def _log_error(self, exc):
-        (ROOT / "hatakyt.txt").write_text(
-            f"{type(exc).__name__}: {exc}", encoding="utf-8"
-        )
+    def _log_error(self, exc: Exception) -> None:
+        try:
+            self.core.log_error(exc)
+        except OSError as log_error:
+            print(f'Hata kaydı yazılamadı: {log_error}')
 
-    def resolve_path(self, value):
-        if not value or value == "~":
-            return self.home
-        path = Path(value)
-        return path.resolve() if path.is_absolute() else (self.cwd / path).resolve()
+    def resolve_path(self, value: str | Path) -> Path:
+        return self.filesystem.resolve(value, self.cwd)
 
     def cmd_help(self, _):
         print(
@@ -137,6 +143,7 @@ class AKMShell:
   notepad             Not defterini aç
   aygıtlar            Windows Aygıt Yöneticisi
   systeminfo          Sistem bilgisini göster
+  settings            Ortak JSON ayarlarını göster / değiştir
   renk <kod>          Windows konsol rengini değiştir
   temizle             Ekranı temizle
   kapat / çıkış       AKM-DOS'u kapat"""
@@ -146,75 +153,28 @@ class AKMShell:
         print(f"AKM-DOS / AKS {VERSION}")
 
     def cmd_clear(self, _):
-        os.system("cls" if os.name == "nt" else "clear")
+        self.core.platform.clear_console()
 
     def cmd_pwd(self, _):
-        print(self.cwd)
+        print(self.filesystem.virtual_path(self.cwd) or self.cwd)
 
     def cmd_dir(self, argument):
-        target = self.resolve_path(argument) if argument else self.cwd
-        if not target.is_dir():
-            print("Klasör bulunamadı.")
-            return
-        entries = sorted(target.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
-        if not entries:
-            print("(boş klasör)")
-            return
-        for item in entries:
-            marker = "<DIR>" if item.is_dir() else "     "
-            print(f"{marker} {item.name}")
+        file_commands.directory(self, argument)
 
     def cmd_cd(self, argument):
-        target = self.resolve_path(argument)
-        if target.is_dir():
-            self.cwd = target
-        else:
-            print("Klasör bulunamadı.")
+        file_commands.change_directory(self, argument)
 
     def cmd_mkdir(self, argument):
-        if not argument:
-            print("Kullanım: mkdir <klasör-adı>")
-            return
-        self.resolve_path(argument).mkdir(parents=True, exist_ok=False)
-        print("Klasör oluşturuldu.")
+        file_commands.mkdir(self, argument)
 
     def cmd_touch(self, argument):
-        if not argument:
-            print("Kullanım: touch <dosya-adı>")
-            return
-        target = self.resolve_path(argument)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.touch(exist_ok=True)
-        print("Dosya hazır.")
+        file_commands.touch(self, argument)
 
     def cmd_type(self, argument):
-        if not argument:
-            print("Kullanım: type <dosya>")
-            return
-        target = self.resolve_path(argument)
-        if not target.is_file():
-            print("Dosya bulunamadı.")
-            return
-        try:
-            print(target.read_text(encoding="utf-8"))
-        except UnicodeDecodeError:
-            print("Bu dosya UTF-8 metin dosyası değil.")
+        file_commands.show_text(self, argument)
 
     def cmd_delete(self, argument):
-        if not argument:
-            print("Kullanım: sil <dosya-veya-boş-klasör>")
-            return
-        target = self.resolve_path(argument)
-        if target == self.home:
-            print("Kullanıcı ana klasörü silinemez.")
-        elif target.is_file():
-            target.unlink()
-            print("Dosya silindi.")
-        elif target.is_dir():
-            target.rmdir()
-            print("Boş klasör silindi.")
-        else:
-            print("Dosya veya klasör bulunamadı.")
+        file_commands.delete(self, argument)
 
     def cmd_calc(self, _):
         try:
@@ -234,12 +194,11 @@ class AKMShell:
         except (ValueError, ZeroDivisionError) as exc:
             print("Hesaplama hatası:", exc)
 
-    def _open_python_program(self, relative_path):
-        path = ROOT / relative_path
-        if not path.exists():
+    def _open_python_program(self, relative_path: str | Path) -> None:
+        try:
+            self.core.platform.launch_python(relative_path)
+        except FileNotFoundError:
             print(f"Program bulunamadı: {relative_path}")
-            return
-        subprocess.Popen([os.sys.executable, str(path)], cwd=str(ROOT))
 
     def cmd_explorer(self, _):
         self._open_python_program("aka.py")
@@ -251,30 +210,56 @@ class AKMShell:
         self._open_python_program(Path("Programs") / "notepad.py")
 
     def cmd_devices(self, _):
-        if os.name != "nt":
-            print("Bu komut yalnızca Windows'ta kullanılabilir.")
-            return
-        subprocess.Popen(["devmgmt.msc"], shell=True)
+        self.core.platform.open_device_manager()
 
     def cmd_systeminfo(self, _):
-        print(f"Sistem : {platform.system()} {platform.release()}")
-        print(f"Makine : {platform.machine()}")
-        print(f"Python : {platform.python_version()}")
+        info = self.core.platform.system_info()
+        print(f"Sistem : {info['system']} {info['release']}")
+        print(f"Makine : {info['machine']}")
+        print(f"Python : {info['python']}")
         print(f"Kullanıcı: {self.username}")
 
     def cmd_color(self, argument):
-        if os.name != "nt":
-            print("Renk komutu şu anda yalnızca Windows'ta destekleniyor.")
-            return
         if not argument:
             print("Kullanım: renk <Windows renk kodu>")
             return
-        os.system(f"color {argument}")
+        self.core.platform.set_console_color(argument)
+
+    def cmd_settings(self, argument):
+        parts = argument.split(maxsplit=2)
+        if not parts:
+            print(json.dumps(self.core.settings.all(), ensure_ascii=False, indent=2))
+        elif parts[0] == 'get' and len(parts) == 2:
+            values = self.core.settings.all()
+            print(json.dumps(values[parts[1]], ensure_ascii=False) if parts[1] in values else 'Ayar bulunamadı.')
+        elif parts[0] == 'set' and len(parts) == 3:
+            if parts[1] == 'user.name':
+                print('Aktif kullanıcı adı settings komutuyla değiştirilemez.')
+                return
+            try:
+                value = json.loads(parts[2])
+            except json.JSONDecodeError:
+                value = parts[2]
+            self.core.settings.set(parts[1], value)
+            print('Ayar kaydedildi.')
+        else:
+            print('Kullanım: settings | settings get <anahtar> | settings set <anahtar> <değer>')
 
     def cmd_exit(self, _):
         self.running = False
         print("AKM-DOS kapatıldı.")
 
 
+def main() -> int:
+    try:
+        AKMShell().run()
+    except (KeyboardInterrupt, EOFError):
+        print('\nAKM-DOS kapatılıyor...')
+    except Exception as exc:
+        print(f'AKM-DOS başlatılamadı: {exc}')
+        return 1
+    return 0
+
+
 if __name__ == "__main__":
-    AKMShell().run()
+    raise SystemExit(main())

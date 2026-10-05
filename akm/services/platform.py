@@ -5,20 +5,28 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
+from typing import Protocol
 
 from ..platform.windows import WindowsBackend
+
+
+class PlatformBackend(Protocol):
+    def clear_console(self) -> None: ...
+    def set_console_color(self, code: str) -> None: ...
+    def open_device_manager(self) -> None: ...
+    def discover_drives(self) -> dict[str, Path]: ...
 
 
 class PlatformService:
     def __init__(self, root: Path) -> None:
         self.root = Path(root).resolve()
-        self.backend = WindowsBackend() if os.name == 'nt' else None
+        self.backend: PlatformBackend | None = WindowsBackend() if os.name == 'nt' else None
 
     def system_info(self) -> dict[str, str]:
         return {'system': platform.system(), 'release': platform.release(),
                 'machine': platform.machine(), 'python': platform.python_version()}
 
-    def _require_backend(self) -> WindowsBackend:
+    def _require_backend(self) -> PlatformBackend:
         if self.backend is None:
             raise NotImplementedError('Bu işlem şu anda yalnızca Windows üzerinde destekleniyor.')
         return self.backend

@@ -92,7 +92,34 @@ class FileSystemService:
                 raise FileNotFoundError(f'AKM folder not found: {mount}')
             return self._beneath(mounts[mount], parts)
         path = Path(raw)
-        return path.resolve() if path.is_absolute() else ((cwd or self.home) / path).resolve()
+        if path.is_absolute():
+            return path.resolve()
+        if cwd is not None:
+            virtual = self.virtual_path(cwd)
+            if virtual is not None:
+                return self.resolve(f'{virtual}/{normalized}')
+        return ((cwd or self.home) / path).resolve()
+
+    def virtual_path(self, path: Path) -> str | None:
+        """Keep relative navigation consistent when a physical cwd is a mount."""
+        path = Path(path).resolve()
+        if path == self.managed_root:
+            return 'AKM:/'
+        if path == self.drive_directory:
+            return 'AKM:/Drives'
+        mounts = [('User', self.home), ('System', self.system), ('Programs', self.programs)]
+        mounts.extend((f'Drives/{name}', root) for name, root in self.drives.items())
+        for name, root in mounts:
+            if path.is_relative_to(root):
+                tail = path.relative_to(root).as_posix()
+                return f'AKM:/{name}' if tail == '.' else f'AKM:/{name}/{tail}'
+        return None
+
+    def is_directory(self, value: str | Path, cwd: Path | None = None) -> bool:
+        return self.resolve(value, cwd).is_dir()
+
+    def is_file(self, value: str | Path, cwd: Path | None = None) -> bool:
+        return self.resolve(value, cwd).is_file()
 
     def list_directory(self, value: str | Path = '', cwd: Path | None = None) -> list[FileEntry]:
         target = self.resolve(value, cwd) if value else (cwd or self.home)

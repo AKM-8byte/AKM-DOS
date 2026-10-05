@@ -91,7 +91,7 @@ class ShellRegressionTests(unittest.TestCase):
 
     def test_python_app_launches_use_current_interpreter(self):
         import sys
-        (self.root / 'Programs').mkdir()
+        (self.root / 'Programs').mkdir(exist_ok=True)
         for name in ('aka.py', 'Programs/notepad.py', 'Programs/webbrowser.py'):
             (self.root / name).touch()
         with patch('subprocess.Popen') as launch:
@@ -102,6 +102,69 @@ class ShellRegressionTests(unittest.TestCase):
         for call in launch.call_args_list:
             self.assertEqual(call.args[0][0], sys.executable)
             self.assertEqual(call.kwargs['cwd'], str(self.root))
+
+    def test_restart_uses_settings_without_prompt_and_keeps_files(self):
+        file = self.shell.home / 'Documents' / 'keep.txt'
+        file.write_text('keep')
+        with patch('builtins.input', side_effect=AssertionError('unexpected input')):
+            restarted = main.AKMShell()
+        self.assertEqual(restarted.username, 'Test User')
+        self.assertEqual(file.read_text(), 'keep')
+
+    def test_shells_can_share_started_core_with_independent_working_directories(self):
+        with patch('builtins.input', side_effect=AssertionError('unexpected input')), patch.object(self.shell.core, 'start', side_effect=AssertionError('unexpected restart')):
+            second = main.AKMShell(core=self.shell.core)
+        self.assertIs(second.core, self.shell.core)
+        self.assertIs(second.filesystem, self.shell.filesystem)
+        self.capture(second.cmd_cd, 'Documents')
+        self.assertEqual(self.shell.cwd, self.shell.home)
+        self.assertEqual(second.cwd, self.shell.home / 'Documents')
+
+    def test_lone_06_profile_is_adopted_without_prompt(self):
+        self.shell.core.settings.path.unlink()
+        with patch('builtins.input', side_effect=AssertionError('unexpected input')):
+            upgraded = main.AKMShell()
+        self.assertEqual(upgraded.home, self.shell.home)
+        self.assertEqual(upgraded.username, 'Test User')
+
+    def test_file_commands_use_shared_service_and_emit_events(self):
+        received = []
+        self.shell.core.events.subscribe('filesystem.changed', received.append)
+        with patch.object(self.shell.filesystem, 'mkdir', wraps=self.shell.filesystem.mkdir) as create:
+            self.capture(self.shell.cmd_mkdir, 'Games')
+        create.assert_called_once_with('Games', self.shell.home)
+        self.assertEqual(received[0].payload['operation'], 'mkdir')
+        self.capture(self.shell.cmd_cd, 'AKM:/')
+        self.assertIn('User', self.capture(self.shell.cmd_dir))
+        self.capture(self.shell.cmd_cd, 'User')
+        self.assertEqual(self.shell.cwd, self.shell.home)
+
+    def test_shell_settings_share_persistence_and_events(self):
+        received = []
+        self.shell.core.events.subscribe('settings.changed', received.append)
+        self.capture(self.shell.cmd_settings, 'set theme classic')
+        self.assertEqual(self.shell.core.settings.get('theme'), 'classic')
+        self.assertEqual(self.capture(self.shell.cmd_settings, 'get theme').strip(), '"classic"')
+        self.assertEqual(received[0].payload['key'], 'theme')
+        self.capture(self.shell.cmd_settings, 'set user.name Other')
+        self.assertEqual(self.shell.core.settings.get('user.name'), 'Test User')
+
+    def test_log_failure_does_not_end_session(self):
+        with patch.object(self.shell.core, 'log_error', side_effect=PermissionError('denied')), patch('builtins.input', side_effect=['mkdir Games', 'mkdir Games', 'version', 'exit']), contextlib.redirect_stdout(io.StringIO()) as output:
+            self.shell.run()
+        self.assertIn('Hata kaydı yazılamadı', output.getvalue())
+        self.assertIn(main.VERSION, output.getvalue())
+
+    def test_log_appends_errors_and_startup_failure_has_clear_exit_status(self):
+        self.shell._log_error(ValueError('first'))
+        self.shell._log_error(RuntimeError('second'))
+        log = (self.root / 'Data' / 'logs' / 'shell.log').read_text(encoding='utf-8')
+        self.assertIn('ValueError: first', log)
+        self.assertIn('RuntimeError: second', log)
+        self.shell.core.settings.path.write_text('{broken', encoding='utf-8')
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(main.main(), 1)
+        self.assertIn('AKM-DOS başlatılamadı', output.getvalue())
 
 
 if __name__ == '__main__':

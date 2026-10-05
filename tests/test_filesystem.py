@@ -1,3 +1,5 @@
+import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,6 +21,22 @@ class FileSystemServiceTests(unittest.TestCase):
         self.fs = FileSystemService(self.root, self.root / 'Users' / 'Test', self.events, {'T:': self.host})
         self.fs.prepare_user('Test')
 
+    def directory_link(self, link, target):
+        self.assertTrue(link.absolute().is_relative_to(self.root))
+        self.assertTrue(target.resolve().is_relative_to(self.root))
+        try:
+            link.symlink_to(target, target_is_directory=True)
+        except OSError as exc:
+            if os.name != 'nt':
+                self.skipTest(f'Directory link unavailable: {exc}')
+            # Junctions exercise Windows path redirection without requiring
+            # the symlink privilege. Both endpoints are inside the test temp.
+            result = subprocess.run(['cmd.exe', '/c', 'mklink', '/J', str(link), str(target)],
+                                    capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            if result.returncode:
+                detail = (result.stdout + result.stderr).decode(errors='replace').strip()
+                self.skipTest(f'Windows directory link unavailable: {detail}')
+
     def test_virtual_mounts_and_relative_paths(self):
         names = {entry.name for entry in self.fs.list_directory('AKM:/')}
         self.assertEqual(names, {'System', 'Programs', 'User', 'Drives'})
@@ -27,6 +45,9 @@ class FileSystemServiceTests(unittest.TestCase):
         self.assertEqual(self.fs.resolve('~/Documents'), self.fs.home / 'Documents')
         self.assertEqual(self.fs.resolve('"Documents"'), self.fs.home / 'Documents')
         self.assertEqual(self.fs.resolve('AKM:/User/../System'), self.fs.system)
+        self.assertEqual(self.fs.resolve('User', self.fs.managed_root), self.fs.home)
+        self.assertEqual(self.fs.resolve('..', self.fs.home), self.fs.managed_root)
+        self.assertEqual(self.fs.resolve('T:', self.fs.drive_directory), self.host)
         self.assertEqual([entry.name for entry in self.fs.list_directory('AKM:/Drives')], ['T:'])
         with self.assertRaises(FileNotFoundError):
             self.fs.resolve('AKM:/Missing')
@@ -78,10 +99,7 @@ class FileSystemServiceTests(unittest.TestCase):
 
     def test_link_escape_is_rejected_without_changing_target(self):
         link = self.fs.home / 'host-link'
-        try:
-            link.symlink_to(self.host, target_is_directory=True)
-        except OSError as exc:
-            self.skipTest(f'Symlink unavailable: {exc}')
+        self.directory_link(link, self.host)
         with self.assertRaises(PermissionError):
             self.fs.touch('host-link/new.txt')
         with self.assertRaises(PermissionError):
@@ -95,10 +113,7 @@ class FileSystemServiceTests(unittest.TestCase):
         settings = self.fs.home / 'Settings'
         (settings / 'profile.txt').unlink()
         settings.rmdir()
-        try:
-            settings.symlink_to(outside, target_is_directory=True)
-        except OSError as exc:
-            self.skipTest(f'Symlink unavailable: {exc}')
+        self.directory_link(settings, outside)
         with self.assertRaises(PermissionError):
             self.fs.prepare_user('Test')
         self.assertFalse((outside / 'profile.txt').exists())

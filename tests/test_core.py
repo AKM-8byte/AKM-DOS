@@ -43,6 +43,9 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(self.core.service_status['settings'], 'failed')
         self.assertEqual(failures[0].payload['service'], 'settings')
         self.assertEqual(received, [])
+        self.core.start('User')
+        self.assertTrue(all(status == 'ready' for status in self.core.service_status.values()))
+        self.assertEqual(len(received), 1)
 
     def test_invalid_username_cannot_escape_user_folder(self):
         with self.assertRaises(ValueError):

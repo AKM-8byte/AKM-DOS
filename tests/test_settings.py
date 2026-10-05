@@ -67,3 +67,10 @@ class SettingsServiceTests(unittest.TestCase):
             self.settings.set('', 'value')
         self.assertFalse(self.path.exists())
         self.assertEqual(self.settings.all(), {})
+
+    def test_boolean_and_numeric_values_remain_distinct(self):
+        self.settings.set('value', [True])
+        self.settings.set('value', [1])
+        self.assertIs(type(self.settings.get('value')[0]), int)
+        self.assertEqual(len(self.received), 2)
+        self.assertIs(type(SettingsService(self.path, self.events).get('value')[0]), int)
