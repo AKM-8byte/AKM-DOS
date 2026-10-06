@@ -1,115 +1,27 @@
-# AGENTS.md — AKM-DOS Agent Instructions
+# AGENTS.md — AKM-DOS Single-Agent Instructions
 
-Bu dosya, AKM-DOS üzerinde çalışan ana yapay zekâ ajanının ve kullanabildiği alt ajanların kalıcı çalışma kurallarını tanımlar.
+Bu dosya AKM-DOS üzerinde çalışan tek yapay zekâ ajanının kalıcı çalışma kurallarını tanımlar.
 
-Bu talimatlar belirli bir sürüme bağlı değildir. Sürüm hedefleri için `ROADMAP.md`, mevcut teknik yapı ve sınırlar için `ARCHITECTURE.md` esas alınmalıdır.
+Sürüm hedefleri için `ROADMAP.md`, mevcut teknik yapı ve sınırlar için `ARCHITECTURE.md` esas alınır.
 
-## 1. Çalışmaya başlamadan önce
+## Çalışma modeli
+- AKM-DOS için yalnızca tek ajan kullan.
+- Alt ajan/sub-agent oluşturma, simüle etme veya görev devretme.
+- Proje görevlerini paralel yürütme; bağımlılık sırasına göre tek tek tamamla.
+- Architecture, implementation, testing, research, documentation ve review ayrı ajanlar değil, aynı ajanın gerektiğinde geçtiği çalışma aşamalarıdır.
+- Bir aşama doğrulanmadan bağımlı sonraki aşamaya geçme.
+- Küçük görevlerde gereksiz analiz ve dokümantasyon üretme.
 
-Her görevde önce:
+## Çalışmaya başlamadan önce
+1. Kullanıcının isteğini belirle.
+2. Yalnızca görev için gerekliyse `ROADMAP.md` ve `ARCHITECTURE.md` içindeki ilgili bölümleri oku.
+3. Önce ilgili kodu ve testleri incele; tüm repoyu gereksiz yere tarama.
+4. Değişikliğin aktif sürüm kapsamına uygunluğunu kontrol et.
+5. En küçük güvenli değişikliği uygula.
 
-1. Kullanıcının isteğini netleştir.
-2. `ROADMAP.md` dosyasını oku ve aktif geliştirme aşamasını belirle.
-3. `ARCHITECTURE.md` dosyasını oku ve mevcut mimariyi anla.
-4. İlgili mevcut kodu ve testleri incele.
-5. Değişikliğin mevcut sürüm kapsamına uygun olup olmadığını kontrol et.
+README, ROADMAP ve ARCHITECTURE çelişirse kodun gerçek durumunu esas al ve önemli ürün/mimari kararı gerekiyorsa kullanıcıya bildir.
 
-README, ROADMAP ve ARCHITECTURE birbiriyle çelişirse bunu sessizce tahmin ederek çözme. Kodun gerçek durumunu incele ve önemli bir ürün/mimari kararı gerekiyorsa kullanıcıya bildir.
-
-## 2. Ana ajanın görevi
-
-Ana ajan bütün işi doğrudan yapmak zorunda değildir.
-
-Görev doğal olarak bağımsız parçalara ayrılabiliyorsa uygun alt ajanlara görev ver. Ana ajan:
-
-- görevi parçalara ayırır,
-- her alt ajana açık ve sınırlı kapsam verir,
-- paralel çalışabilecek işleri paralelleştirir,
-- sonuçları kontrol eder,
-- çakışmaları çözer,
-- entegrasyonu yapar,
-- test sonuçlarını doğrular,
-- nihai değişikliklerin ROADMAP ve ARCHITECTURE ile uyumunu kontrol eder.
-
-Küçük ve tek dosyalık işler için gereksiz alt ajan kullanma.
-
-Alt ajan kullanımı amaç değil, karmaşık işleri daha güvenli ve hızlı çözmek için bir araçtır.
-
-## 3. Alt ajanlara görev verme
-
-Alt ajan görevi mümkün olduğunca şunları içermelidir:
-
-- amaç,
-- incelenecek dosyalar/modüller,
-- değiştirmesine izin verilen alan,
-- değiştirmemesi gereken alan,
-- beklenen çıktı,
-- çalıştırılması gereken testler,
-- varsa mimari kısıtlar.
-
-"Projeyi düzelt" gibi belirsiz görevler verme.
-
-Aynı dosyanın aynı bölümünü birden fazla alt ajana aynı anda değiştirtme. Çakışma ihtimali varsa işleri sıraya koy.
-
-Alt ajanların sonuçlarını kontrol etmeden doğrudan kabul etme.
-
-## 4. Göreve göre uzmanlaşma
-
-Sabit ajan isimleri zorunlu değildir. Göreve göre uygun uzmanlık oluşturulabilir.
-
-Örnek uzmanlıklar:
-
-### Architecture
-- modül sınırları,
-- bağımlılıklar,
-- servis tasarımı,
-- büyük refactor kararları.
-
-### Core
-- `AKMCore`,
-- servis yaşam döngüsü,
-- ortak sistem davranışları.
-
-### FileSystem
-- `AKM:/` mantıksal dosya sistemi,
-- path çözümleme,
-- mount sınırları,
-- dosya güvenliği.
-
-### Platform
-- `akm/platform/`,
-- Windows backend,
-- platform bağımlılıklarının izolasyonu,
-- gelecekteki Linux backend uyumluluğu.
-
-### Shell
-- komut routing,
-- shell davranışları,
-- shell ile servis katmanı arasındaki bağlantı.
-
-### GUI / Desktop
-- PySide6 arayüzü,
-- Desktop ve pencere katmanı,
-- GUI'nin servis API'lerini doğru kullanması.
-
-### Application System
-- uygulama manifestleri,
-- uygulama keşfi,
-- process/app lifecycle,
-- birinci/üçüncü taraf uygulama ayrımı.
-
-### Tests
-- mevcut testlerin çalıştırılması,
-- regression analizi,
-- yeni davranışlar için testler,
-- hatanın testte mi implementasyonda mı olduğunun belirlenmesi.
-
-Bu roller örnektir. Görev için daha uygun bir uzmanlık gerekiyorsa oluşturulabilir.
-
-## 5. Mimari kurallar
-
-AKM-DOS modüler kalmalıdır.
-
+## Mimari kurallar
 Genel yön:
 
 ```text
@@ -124,19 +36,14 @@ Platform abstractions
 Windows backend / future backends
 ```
 
-Core ve servisler mümkün olduğunca GUI framework'lerinden bağımsız kalmalıdır.
+- Core ve servisler GUI framework'lerinden mümkün olduğunca bağımsız kalmalıdır.
+- Shell ve GUI aynı servis API'lerini kullanabilmelidir.
+- Windows'a özgü davranışları platform katmanında tut.
+- Yeni global state eklemekten kaçın.
+- Mevcut servis uygunsa ikinci bir sistem oluşturma.
 
-Shell ve GUI aynı servis API'lerini kullanabilmelidir.
-
-Windows'a özgü davranışları genel Core koduna yayma. Platforma özgü kodları uygun platform katmanında tut.
-
-Yeni global state eklemekten kaçın.
-
-Bir özellik için mevcut servis uygunsa yeni paralel sistem oluşturma.
-
-## 6. Dosya sistemi kuralları
-
-AKM-DOS'un mantıksal dosya sistemi modeli korunmalıdır:
+## Dosya sistemi
+Mantıksal model korunmalıdır:
 
 ```text
 AKM:/
@@ -146,108 +53,62 @@ AKM:/
 └── Drives/
 ```
 
-Shell, Explorer ve gelecekteki uygulamalar mümkün olduğunca FileSystem Service üzerinden çalışmalıdır.
+Shell, Explorer ve gelecekteki uygulamalar mümkün olduğunca FileSystem Service üzerinden çalışmalıdır. Yeni kodlarda doğrudan host path erişimini yayma. Korunan alanların sınırlarını kullanıcı açıkça istemeden zayıflatma. Veri kaybı riski taşıyan silme/overwrite işlemlerinde özellikle dikkatli ol.
 
-Gerçek host yollarına doğrudan erişimi yeni kodlara yayma.
+## Sürüm disiplini
+- Aktif sürüm kapsamını `ROADMAP.md` belirler.
+- Sonraki sürümün büyük özelliklerini erken ekleme.
+- Yol haritası değişirse ROADMAP, mevcut teknik mimari değişirse ARCHITECTURE güncellenir.
+- Uygulama kodundaki sürüm değeri ile belgelerin sürümünü uyumlu tut.
 
-System ve diğer korunan alanların güvenlik sınırlarını kullanıcı açıkça istemeden zayıflatma.
+## Kod değiştirme
+- Değişiklikten önce ilgili implementasyonu oku.
+- En küçük güvenli değişikliği tercih et.
+- Görevle ilgisiz refactor yapma.
+- Kullanıcı istemeden büyük dependency/framework değişikliği yapma.
+- Sırf modernleştirmek için çalışan sistemi yeniden yazma.
+- Kod okunabilir ve test edilebilir kalsın.
 
-Dosya silme, taşıma veya overwrite gibi veri kaybı oluşturabilecek değişikliklerde özellikle dikkatli ol.
+## Test ve doğrulama
+- Önemli değişikliklerden sonra önce ilgili testleri çalıştır.
+- Gerekliyse ardından daha geniş test paketine geç.
+- Çalıştırılmamış testi geçmiş gibi raporlama.
+- Başarısızlıkta önce implementasyon, test ve beklenen davranış arasındaki farkı belirle.
+- Son kontrolde diff'i ve test kanıtını aynı ajan gözden geçirir.
 
-## 7. Sürüm ve ROADMAP disiplini
+## Dokümantasyon
+Yalnızca gerçekten etkilenen belgeyi güncelle:
+- kullanım bilgisi → `README.md`
+- sürüm planı → `ROADMAP.md`
+- mevcut mimari → `ARCHITECTURE.md`
+- kalıcı çalışma kuralları → `AGENTS.md`
 
-Aktif sürümün kapsamı `ROADMAP.md` tarafından belirlenir.
+Aynı bilgiyi gereksiz yere birden fazla dosyada tekrarlama.
 
-Sonraki sürüme ait büyük bir özelliği "ileride lazım olacak" gerekçesiyle mevcut sürüme ekleme.
+## Token ve bağlam verimliliği
+- Her görevde tüm repo veya tüm dokümantasyonu yeniden okuma.
+- Önce dosya adı/sembol/arama ile ilgili alanı bul, sonra gerekli bölümü oku.
+- Kullanıcının istemediği uzun durum raporları, alternatifler ve tekrarlar üretme.
+- Basit görevlerde uzun plan yazma; doğrudan uygula ve doğrula.
+- Daha önce doğrulanmış proje bilgisini değişmediyse tekrar araştırma.
+- Testlerde önce hedefli testi çalıştır; yalnızca ihtiyaç varsa tam suite çalıştır.
+- Büyük dosyalarda mümkünse ilgili fonksiyon/bölümle çalış.
+- Görev dışı fikirleri uygulama veya kapsamı kendiliğinden genişletme.
+- Sonuç raporunu yapılan değişiklik + test + kalan risk şeklinde kısa tut.
 
-Gelecek özellikler için yalnızca mevcut mimariyi gereksiz yere kilitlemeyecek temiz extension point'ler bırak.
-
-Bir sürüm tamamlandığında `AGENTS.md` sıfırdan yazılmaz. Bu dosya kalıcıdır.
-
-Sürüm hedefleri değişirse `ROADMAP.md` güncellenir.
-
-Mimari gerçekten değişirse `ARCHITECTURE.md` güncellenir.
-
-Kalıcı ajan çalışma kuralları değişirse `AGENTS.md` güncellenir.
-
-## 8. Kod değiştirme politikası
-
-Değişiklik yapmadan önce mevcut implementasyonu oku.
-
-Mümkün olan en küçük güvenli değişikliği tercih et.
-
-Görevle ilgisiz kodu refactor etme.
-
-Kullanıcı istemeden büyük framework, dependency veya teknoloji değişikliği yapma.
-
-Sırf kodu "daha modern" yapmak için çalışan sistemi yeniden yazma.
-
-Backward compatibility önemliyse mevcut davranışı koru veya değişikliği açıkça belirt.
-
-Kod okunabilir, test edilebilir ve proje ölçeğine uygun kalmalıdır.
-
-Erken optimizasyon yapma.
-
-## 9. Test politikası
-
-Önemli değişikliklerden sonra ilgili testleri çalıştır.
-
-Önce hedeflenen testleri, ardından mümkünse tüm test paketini çalıştır.
-
-Yeni davranış ekleniyorsa uygun test eklemeyi değerlendir.
-
-Test başarısız olduğunda testi yalnızca yeşile döndürmek için değiştirme.
-
-Önce şunu belirle:
-
-- implementasyon mu yanlış,
-- test mi yanlış,
-- beklenen davranış bilinçli olarak mı değişti?
-
-Test çalıştırılamıyorsa bunu açıkça belirt ve çalıştırılmış gibi davranma.
-
-## 10. Dokümantasyon
-
-Kod davranışı veya mimari değiştiğinde ilgili dokümantasyonun güncel kalıp kalmadığını kontrol et.
-
-- Kullanıcı/geliştirici kullanım bilgisi → `README.md`
-- Sürüm planı → `ROADMAP.md`
-- Mevcut teknik mimari → `ARCHITECTURE.md`
-- Ajan çalışma kuralları → `AGENTS.md`
-
-Aynı bilgiyi gereksiz yere dört dosyada tekrar etme.
-
-## 11. Kullanıcıya danışılması gereken durumlar
-
-Şunlarda önemli bir karar vermeden önce kullanıcıya danış:
-
+## Kullanıcıya danış
+Yalnızca önemli karar gerektiğinde sor:
 - büyük mimari yön değişikliği,
-- yeni framework veya büyük dependency,
-- geriye dönük uyumluluğu bozacak değişiklik,
+- yeni framework/büyük dependency,
+- geriye dönük uyumluluğu bozma,
 - veri formatı veya dosya sistemi modeli değişikliği,
-- güvenlik sınırlarının gevşetilmesi,
-- ROADMAP kapsamının değiştirilmesi,
-- kullanıcı tarafından görülen önemli davranış değişikliği.
+- güvenlik sınırlarını gevşetme,
+- ROADMAP kapsamını değiştirme,
+- önemli kullanıcı davranışı değişikliği.
 
-Küçük implementasyon ayrıntılarında gereksiz onay isteme.
+Rutin implementasyon ayrıntılarında gereksiz onay isteme.
 
-## 12. Tamamlama kontrolü
+## Tamamlama
+Görev ancak istenen davranış uygulandığında, ilgili kontroller yapıldığında ve bilinen riskler açıklandığında tamamlanmış sayılır. Gerçekleştirilmemiş çalışma, test veya inceleme uydurulmaz.
 
-Bir görevi tamamlamadan önce ana ajan şunları kontrol etmelidir:
-
-- İstenen görev gerçekten tamamlandı mı?
-- Değişiklik aktif ROADMAP aşamasına uygun mu?
-- Mimari sınırlar korundu mu?
-- Alt ajan çıktıları gözden geçirildi mi?
-- İlgili testler çalıştırıldı mı?
-- Regression riski var mı?
-- Dokümantasyon güncellemesi gerekiyor mu?
-- Gereksiz dosya veya dependency eklendi mi?
-
-Sonuç raporunda yapılan değişiklikleri, test durumunu ve varsa kalan riskleri kısa ve açık şekilde belirt.
-
-## Temel ilke
-
-AKM-DOS küçük, anlaşılabilir, modüler ve geliştirilebilir kalmalıdır.
-
-Yeni özellik eklemekten önce sağlam bir temel tercih edilir.
+Temel ilke: AKM-DOS küçük, anlaşılabilir, modüler ve geliştirilebilir kalmalıdır; sağlam temel yeni özellikten önce gelir.
