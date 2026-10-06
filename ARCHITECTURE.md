@@ -70,18 +70,10 @@ Core teşhisleri `Data/logs/shell.log` içinde timestamp/traceback ile eklenir. 
 
 PySide6 Desktop, BIOS, App/Process/Window/Package servisleri, recovery, bildirim/ses servisleri ve güvenli application sandbox bu commitlerde uygulanmaz.
 
-## Sonraki aşamalar
+## Gelecek geliştirme aşamaları
 
-### 0.7
-Core Foundation sonrasında kalan komutları aşamalı ayırmak ve Explorer'ın ortak Core'a bağlanma yöntemini değerlendirmek. Processler arası iletişim gibi büyük kararlar ayrı değerlendirilir.
+Bu belge AKM-DOS'un mevcut teknik mimarisini ve mimari sınırlarını açıklar.
 
-### 0.8
-Program manifest sistemi ve AKM uygulama yöneticisi.
-
-### 0.9
-Masaüstü arayüzünü shell ve kullanıcı sistemiyle birleştirmek.
-
-### 1.0
-Kararlı shell, kullanıcı sistemi, uygulama altyapısı ve masaüstü ortamını tek yapıda toplamak.
+Gelecek sürümlerin hedefleri, geliştirme sırası ve sürüm kapsamları için tek kaynak `ROADMAP.md` dosyasıdır. Mimari kararlar uygulanıp sistemin mevcut yapısını değiştirdiğinde bu belge güncellenir.
 
 > AKM-DOS şu anda gerçek bir işletim sistemi çekirdeği değildir. Python üzerinde çalışan deneysel bir shell/desktop ortamıdır.
