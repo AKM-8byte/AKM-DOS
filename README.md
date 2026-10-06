@@ -197,4 +197,8 @@ Proje deneysel / geliştirme aşamasındadır. Kod tabanında eski prototiplerde
 
 ## Lisans
 
-Bu depoda şu anda ayrı bir lisans dosyası bulunmamaktadır.
+AKM-DOS, **GNU General Public License v3.0 or later (GPL-3.0-or-later)** altında lisanslanmıştır.
+
+Copyright (C) 2026 Ahmet Kayra
+
+Ayrıntılar için `LICENSE` dosyasına bakın.
