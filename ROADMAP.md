@@ -24,6 +24,11 @@ Amaç: Shell ve gelecekteki GUI'nin paylaşabileceği modüler, test edilebilir 
 Amaç: Yeni çekirdek üzerinde ilk grafiksel AKM ortamının temelini kurmak.
 
 - Windows 95 esintili fakat özgün AKM açılış deneyimi
+- AKM-DOS'a özgü, üçüncü taraf ses kullanmayan kısa startup sound tasarımı
+  - Retro BIOS başlangıcı ile sıcak 90'lar synth karakterinin birleşimi
+  - Yaklaşık 3–4 saniyelik özgün ses kimliği
+  - Proje içinde kaynağı ve sahipliği belgelenmiş bir asset olarak saklanması
+  - Legacy `win95.mp3` bağımlılığının kaldırılması/değiştirilmesi
 - BIOS benzeri sistem bilgi ekranı
 - Boot akışının Core başlangıç durumuyla bağlanması
 - PySide6 tabanlı Desktop temelinin oluşturulması
