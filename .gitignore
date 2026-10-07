@@ -1,4 +1,10 @@
 # Byte-compiled / optimized / DLL files
+
+# AKM-DOS personal runtime data
+/Data/
+/Users/
+/Kullanıcı/
+
 __pycache__/
 *.py[cod]
 *$py.class
