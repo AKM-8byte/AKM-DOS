@@ -1,0 +1,2 @@
+# Qt Widgets, SVG and multimedia for the 0.8 Desktop foundation.
+PySide6>=6.8,<7

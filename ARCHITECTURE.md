@@ -12,7 +12,7 @@ AKM-DOS 0.6 ile proje, tek bir recursive komut fonksiyonundan genişletilebilir 
 - Mevcut AKM uygulamalarını shell üzerinden başlatma
 - Merkezi hata kaydı
 
-## 0.7 Core Foundation — mevcut uygulama
+## 0.7 Core Foundation — korunan temel
 
 ```text
 main.py — AKMShell: mevcut döngü, komut tablosu, prompt
@@ -68,7 +68,63 @@ Core teşhisleri `Data/logs/shell.log` içinde timestamp/traceback ile eklenir. 
 
 `aka.py` ve `Programs/*` değiştirilmemiştir. Explorer ayrı process'te ve kendi dosya API'leriyle çalışır. Ortak GUI Core kullanımı ve `filesystem.changed` ile otomatik yenileme sonraki bir entegrasyon aşamasıdır; mevcut Event Service bunu tek başına sağlamaz.
 
-PySide6 Desktop, BIOS, App/Process/Window/Package servisleri, recovery, bildirim/ses servisleri ve güvenli application sandbox bu commitlerde uygulanmaz.
+App/Process/Window/Package servisleri, otomatik recovery, genel bildirim/ses servisleri ve güvenli application sandbox uygulanmaz.
+
+## 0.8 Boot / BIOS / Desktop — mevcut uygulama
+
+`baslangıç.py` PySide6 giriş noktasıdır; Turtle veya `win95.mp3` çalıştırmaz.
+Shell bağımsız olarak `main.py` üzerinden kullanılabilir. Ortak sürüm kaynağı
+`akm/version.py` dosyasıdır.
+
+Qt bağımsız `akm/gui/boot.py` içindeki `BootSession.prepare()` Core'u kurar ve
+Shell ile aynı legacy/kayıtlı/tek profil önceliğiyle kullanıcıyı belirler.
+POST aşamasında henüz kullanıcı alanı hazırlanmaz; FileSystem `not_started`
+kalır. `login()` aynı Core'un `start(username)` metodunu çağırır. Parola veya
+yeni kullanıcı yönetim sistemi eklenmez. `start()` tam başlangıç için korunur.
+Bozuk ayarlar sıfırlanmaz; hatalar ve gerçek servis durumları sunulur.
+
+`akm/gui/app.py` akışı BIOS → Login → Desktop şeklindedir. Kurulum ve login
+işleri ayrı zamanlarda tek `BootWorker` içinde çalışır; GUI worker tamamlanana
+kadar Core/Event Service'e erişmez. Aralarda ve Desktop'ta Core'un tek sahibi
+GUI thread'idir. Event Service thread-safe hale getirilmemiştir. Başlangıç
+sürerken pencere kapatma ertelenir; thread zorla sonlandırılmaz.
+
+`akm/gui/screens.py`, Figma `dwDgZF6gxfy0oeygvC4xlm` dosyasındaki BIOS (`2:2`)
+ve Boot/Login (`2:10`) görünümünü Qt widget'larıyla uygular. 1280×800 referans
+sayfaları oran korunarak ölçeklenir; login siluetleri `assets/redesign/` içindeki
+orijinal SVG'lerdir. BIOS sahte bellek/aygıt testleri yayınlamaz. Başarılı login
+sonrasında özgün ses başlatılır; yaklaşık dört saniye içinde veya login
+düğmesine tekrar basarak Desktop açılır. Hata durumunda Desktop açılmaz.
+`akm/gui/sound.py` boot'a ait `QSoundEffect` adaptörüdür; ses hatası sessiz devam
+etmeye izin verir ve uyarı gösterir. Asset/kaynak `assets/audio/` ve
+`tools/generate_startup_sound.py` içindedir.
+
+`akm/gui/desktop.py`, AKM Desktop (`2:34`) görünümünü native QWidget workspace,
+kısayollar ve görev çubuğuyla kurar. `windows.py` içindeki Core'dan bağımsız
+`WindowManager`/`BaseWindow`, sürükleme, masaüstü sınırları, öne alma, kapatma,
+küçültme, restore ve maximize/restore davranışını ortaklaştırır. Pencereler
+workspace'in çocuk widget'larıdır; görev çubuğu pencere sınırının dışındadır.
+Her uygulama için tek pencere yeniden kullanılır; kapatma pencereyi kaldırır,
+kısayol tekrar oluşturur. Küçültme içerik ve konumu korur. Bu bir Core
+Window/Process/App Service veya uygulama manifest sistemi değildir.
+
+`terminal.py` mevcut `AKMShell(core=shared_core)` örneğini kullanır; etkileşimsiz
+Shell handler'larını yeniden yazmadan çağırır. Shell çalışma konumu pencere
+kapatılıp açıldığında korunur. `status` GUI adaptöründe gerçek Core durumlarını
+gösterir. Dosya işlemleri mevcut FileSystem Service sınırlarına tabidir.
+System ve Settings de ortak pencere bileşenini kullanır. Yeni Explorer/Notes
+uygulaması eklenmez; eski uygulamalar Shell üzerinden erişilebilir.
+Backend CPU/RAM/disk ölçümü sağlamadığından bu değerler üretilmez.
+
+`display.py` Settings Service'in `gui.display_mode` değerini (`fullscreen` /
+`window`) kullanır. İlk seçim Settings yazımı başarılı olduktan sonra Qt'nin
+`showFullScreen()` / `showNormal()` metoduyla uygulanır. Yok/geçersiz ayar ilk
+seçim sorusunu tekrar gerektirir; geçerli ayar sonraki POST'ta otomatik uygulanır.
+`settings_view.py` aynı politikayla ayarın sonradan değiştirilmesini sağlar.
+Core ve Settings Service'in veri formatı veya erişim sınırları değiştirilmez.
+
+IBM Plex Mono/Inter bulunmazsa Consolas/Segoe UI kullanılır. Eski Horizon
+SVG'leri korunmuştur; yeni görünümde kullanılmaz.
 
 ## Gelecek geliştirme aşamaları
 

@@ -38,13 +38,18 @@ projects.
 - Current repository note: it is declared as a dependency, but its necessity
   should be reviewed before a release.
 
-### playsound
+### PySide6 / Qt for Python
 
-- Project: playsound by Taylor Marks
-- Use in AKM-DOS: legacy startup sound playback
-- License: MIT
-- Status: permissive license; the copyright and permission notice must be
-  preserved in copies or substantial portions of the software.
+- Use: 0.8 GUI, SVG rendering and startup audio via Qt Multimedia.
+- Declared in: `requirements-gui.txt`; development verified with PySide6 6.11.2.
+- Open-source Qt for Python is offered under LGPLv3/GPLv3, with a commercial
+  alternative. Shiboken and bundled Qt components have their own applicable
+  terms; retain the license texts shipped in the installed distribution.
+- Official license inventory: https://doc.qt.io/qtforpython-6/licenses.html
+- Binary packaging must retain applicable Qt, Shiboken, multimedia and other
+  bundled notices. No binary release is produced by this development change.
+
+`playsound` is no longer required or used by the 0.8 boot entry point.
 
 ## Python standard library / Tkinter
 
@@ -63,8 +68,25 @@ release packaging.
 - The AKM-DOS GPL license does not automatically grant rights to this asset.
 - Before a public packaged release, either document a valid redistribution
   license for the file or replace/remove it.
-- Preferred long-term solution: use an original AKM-DOS startup sound with
-  documented ownership/licensing.
+- 0.8 boot uses `assets/audio/akm_horizon.wav` instead. The original, synthesized
+  cue and its generator are project contributions under GPL-3.0-or-later.
+  Source/provenance details: `assets/audio/README.md`.
+- The old unused file is retained for archival review, not used at runtime.
+
+### Horizon Glass SVGs
+
+- Source: the user-supplied AKM-DOS UI Figma frame `6:2`.
+- Used under the user's authorization to implement that design locally.
+- No third-party redistribution license is inferred from that authorization.
+- Source node inventory and rights note: `assets/horizon/README.md`.
+- Retained from the previous GUI; no longer used by the redesigned screens.
+
+### AKM DOS 0.8 redesign SVGs
+
+- Source: user-supplied Figma file `dwDgZF6gxfy0oeygvC4xlm`, Login frame `2:10`.
+- Seven original silhouette SVGs used under local implementation authorization.
+- Source node inventory and rights note: `assets/redesign/README.md`.
+- No independent third-party redistribution license is inferred.
 
 ## Legacy source requiring provenance review
 
@@ -73,7 +95,6 @@ architecture and should have their authorship/source history confirmed before a
 formal release:
 
 - `aka.py`
-- `baslangıç.py`
 - `Programs/calculator.py`
 - `Programs/clock.py`
 - `Programs/notepad.py`
@@ -99,4 +120,4 @@ Before publishing a packaged AKM-DOS release:
    packaging tools.
 6. Re-run this audit whenever dependencies or packaged assets change.
 
-Last reviewed: 2026-10-06.
+Last reviewed: 2026-10-07.

@@ -1,12 +1,12 @@
-"""AKM-DOS 0.7 - existing command shell backed by shared core services."""
+"""AKM-DOS 0.8 - existing command shell backed by shared core services."""
 
 import json
 from pathlib import Path
 
 from akm import AKMCore
 from akm.shell.commands import filesystem as file_commands
+from akm.version import VERSION
 
-VERSION = "0.7 Alpha"
 ROOT = Path(__file__).resolve().parent
 USERS_DIR = ROOT / "Users"
 LEGACY_USER_FILE = ROOT / "Kullanıcı" / "kullanıcı_ad.txt"

@@ -2,7 +2,7 @@
 
 Bu belge AKM-DOS'un planlanan geliştirme yönünü tanımlar. Sürüm kapsamları bilinçli olarak ayrıdır; sonraki sürüm özellikleri mevcut sürüme erken taşınmamalıdır.
 
-## 0.7 Alpha — Core Foundation (mevcut aşama)
+## 0.7 Alpha — Core Foundation
 
 Amaç: Shell ve gelecekteki GUI'nin paylaşabileceği modüler, test edilebilir çekirdeği tamamlamak.
 
@@ -19,7 +19,7 @@ Amaç: Shell ve gelecekteki GUI'nin paylaşabileceği modüler, test edilebilir 
 
 0.7 kapsamında PySide6 Desktop, BIOS arayüzü veya yeni uygulama sistemi geliştirilmez.
 
-## 0.8 Alpha — Boot / BIOS / Desktop Foundation
+## 0.8 Alpha — Boot / BIOS / Desktop Foundation (mevcut aşama)
 
 Amaç: Yeni çekirdek üzerinde ilk grafiksel AKM ortamının temelini kurmak.
 
@@ -34,6 +34,12 @@ Amaç: Yeni çekirdek üzerinde ilk grafiksel AKM ortamının temelini kurmak.
 - PySide6 tabanlı Desktop temelinin oluşturulması
 - Core servislerinin GUI tarafından kullanılması
 - Başlangıç ve servis hatalarının kullanıcıya anlaşılır biçimde gösterilmesi
+- Geleneksel BIOS/POST → mevcut yerel kullanıcıya bağlı Boot/Login → Desktop akışı
+- Kullanıcının açık kapsam genişletmesiyle temel GUI pencere yönetimi:
+  - Ortak BaseWindow / WindowManager, sürükleme ve masaüstü sınırları
+  - Kapatma, küçültme, görev çubuğundan restore ve maximize/restore
+  - Mevcut Shell'i kullanan Terminal ilk pencere örneğidir
+- İlk açılış ekran modu seçiminin Settings Service ile saklanması ve GUI'den değiştirilebilmesi
 
 GUI, dosya sistemi veya platform işlemlerini doğrudan gerçekleştirmek yerine servis katmanını kullanmalıdır.
 
@@ -41,7 +47,7 @@ GUI, dosya sistemi veya platform işlemlerini doğrudan gerçekleştirmek yerine
 
 Amaç: Masaüstünü kullanılabilir bir çalışma ortamına dönüştürmek.
 
-- Temel pencere yönetimi
+- Temel GUI pencere yönetiminin geliştirilmesi (ilk temel 0.8'e kullanıcı isteğiyle alındı)
 - Masaüstü
 - Görev çubuğu
 - Yeni Explorer
